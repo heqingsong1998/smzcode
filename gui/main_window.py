@@ -126,12 +126,8 @@ class MainWindow(QMainWindow):
         self.connection_panel.connect_all.connect(self._on_connect_all)
         self.connection_panel.disconnect_all.connect(self._on_disconnect_all)
 
-        # ========== 新增：数据记录回调（高频直接调用，不通过信号） ==========
-        # 设置采集线程的回调函数，直接将数据写入队列
-        # 注意：虽然两个 HWT606 指向同一函数，但调用时会传入不同的 sensor_id ('hwt606_1' 或 'hwt606_2')
-        # 因此数据会被写入不同的队列，不会覆盖
-        self.sensor_manager.record_callback_hwt606_1 = self.data_recorder.write_hwt606_data
-        self.sensor_manager.record_callback_hwt606_2 = self.data_recorder.write_hwt606_data
+        # ========== 数据记录回调（高频直接调用，不通过信号） ==========
+        # 仅保留当前需要采集的两个传感器（粘附脚 + 六轴力）
         self.sensor_manager.record_callback_nianfujiao = self.data_recorder.write_nianfujiao_data
         self.sensor_manager.record_callback_liuzhouli = self.data_recorder.write_liuzhouli_data
         
@@ -142,28 +138,6 @@ class MainWindow(QMainWindow):
         self.sensor_manager.error_occurred.connect(self._on_sensor_error)
         
         # ========== 控制面板信号 ==========
-        # HWT606-1
-        self.control_panel.hwt606_1_accel_calib.connect(
-            self.sensor_manager.hwt606_1_accel_calibration
-        )
-        self.control_panel.hwt606_1_angle_zero.connect(
-            self.sensor_manager.hwt606_1_angle_zero
-        )
-        self.control_panel.hwt606_1_reset_baseline.connect(
-            self.sensor_manager.hwt606_1_reset_baseline
-        )
-        
-        # HWT606-2
-        self.control_panel.hwt606_2_accel_calib.connect(
-            self.sensor_manager.hwt606_2_accel_calibration
-        )
-        self.control_panel.hwt606_2_angle_zero.connect(
-            self.sensor_manager.hwt606_2_angle_zero
-        )
-        self.control_panel.hwt606_2_reset_baseline.connect(
-            self.sensor_manager.hwt606_2_reset_baseline
-        )
-        
         # 粘附脚
         self.control_panel.nianfujiao_reply.connect(
             self.sensor_manager.nianfujiao_reply
@@ -181,12 +155,6 @@ class MainWindow(QMainWindow):
         )
         
         # ========== 数据更新信号 ==========
-        self.sensor_manager.hwt606_1_data_updated.connect(
-            self._on_hwt606_1_data_updated
-        )
-        self.sensor_manager.hwt606_2_data_updated.connect(
-            self._on_hwt606_2_data_updated
-        )
         self.sensor_manager.nianfujiao_data_updated.connect(
             self._on_nianfujiao_data_updated
         )
@@ -206,11 +174,7 @@ class MainWindow(QMainWindow):
         self.connection_panel.set_all_busy(True)
         
         success = False
-        if sensor_id == 'hwt606_1':
-            success = self.sensor_manager.connect_hwt606_1()
-        elif sensor_id == 'hwt606_2':
-            success = self.sensor_manager.connect_hwt606_2()
-        elif sensor_id == 'nianfujiao':
+        if sensor_id == 'nianfujiao':
             success = self.sensor_manager.connect_nianfujiao()
         elif sensor_id == 'liuzhouli':
             success = self.sensor_manager.connect_liuzhouli()
@@ -224,11 +188,7 @@ class MainWindow(QMainWindow):
     
     def _on_disconnect_sensor(self, sensor_id: str):
         """断开传感器"""
-        if sensor_id == 'hwt606_1':
-            self.sensor_manager.disconnect_hwt606_1()
-        elif sensor_id == 'hwt606_2':
-            self.sensor_manager.disconnect_hwt606_2()
-        elif sensor_id == 'nianfujiao':
+        if sensor_id == 'nianfujiao':
             self.sensor_manager.disconnect_nianfujiao()
         elif sensor_id == 'liuzhouli':
             self.sensor_manager.disconnect_liuzhouli()
@@ -240,8 +200,6 @@ class MainWindow(QMainWindow):
         self.connection_panel.set_all_busy(True)
         
         results = {
-            'hwt606_1': self.sensor_manager.connect_hwt606_1(),
-            'hwt606_2': self.sensor_manager.connect_hwt606_2(),
             'nianfujiao': self.sensor_manager.connect_nianfujiao(),
             'liuzhouli': self.sensor_manager.connect_liuzhouli()
         }
@@ -249,13 +207,13 @@ class MainWindow(QMainWindow):
         self.connection_panel.set_all_busy(False)
         
         success_count = sum(results.values())
-        if success_count == 4:
+        if success_count == 2:
             QMessageBox.information(self, "成功", "所有传感器连接成功！")
         else:
             failed = [k for k, v in results.items() if not v]
             QMessageBox.warning(
                 self, "部分失败", 
-                f"成功: {success_count}/4\n失败: {', '.join(failed)}"
+                f"成功: {success_count}/2\n失败: {', '.join(failed)}"
             )
     
     def _on_disconnect_all(self):

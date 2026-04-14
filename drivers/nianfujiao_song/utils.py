@@ -1,9 +1,11 @@
 """
 粘附脚传感器工具函数
 
-协议更新：
-- 仅保留样式0数据帧 (Style0)
-- 原 JJJ2_1 / JJJ2_2 字段改为 flag1 / flag2
+协议更新（新版样式0）：
+- 帧头由 5A 20 00 80 00 01 23 更新为 5A 30 00 80 00 01 23
+- payload 由 16 个 int16 扩展为 24 个 int16
+- 在原 16 个字段后新增：
+  flag_fz / flag_fx / flag_d / reserved_1..reserved_5
 """
 import csv
 import time
@@ -12,10 +14,11 @@ from typing import List, Optional
 
 # ========== 帧格式定义：仅样式0 ==========
 
-# 样式0：5A 20 00 80 00 01 23 + 32字节 payload(16*int16 LE) + A5
-STYLE0_HEADER = bytes.fromhex("5A 20 00 80 00 01 23")
+# 样式0（新版）：
+# 5A 30 00 80 00 01 23 + 48字节 payload(24*int16 LE) + A5
+STYLE0_HEADER = bytes.fromhex("5A 30 00 80 00 01 23")
 STYLE0_TAIL = 0xA5
-STYLE0_PAYLOAD_LEN = 32
+STYLE0_PAYLOAD_LEN = 48
 STYLE0_TOTAL_LEN = len(STYLE0_HEADER) + STYLE0_PAYLOAD_LEN + 1
 
 
@@ -138,10 +141,7 @@ class CsvWriter:
 
 # ========== CSV 表头 & 打印格式 ==========
 def get_style0_headers() -> List[str]:
-    """获取样式0的CSV表头（原始 + 标定值）
-
-    注意：JJJ2_1 / JJJ2_2 已改为 flag1 / flag2。
-    """
+    """获取样式0的CSV表头（原始 + 标定值，24字段版）"""
     return [
         # 原始值
         "Fx1_raw", "Fy1_raw", "Fz1p_raw", "Mx1_raw", "My1_raw",
@@ -149,10 +149,16 @@ def get_style0_headers() -> List[str]:
         "Fx2_raw", "Fy2_raw", "Fz2p_raw", "Mx2_raw", "My2_raw",
         "flag1_raw", "flag2_raw",
         "FZ1m_raw", "FZ2m_raw",
+        "flag_fz_raw", "flag_fx_raw", "flag_d_raw",
+        "reserved_1_raw", "reserved_2_raw", "reserved_3_raw", "reserved_4_raw", "reserved_5_raw",
         # 标定值
         "Fx1_cal", "Fy1_cal", "Fz1p_cal", "Mx1_cal", "My1_cal",
+        "JJJ1_1_cal", "JJJ1_2_cal",
         "Fx2_cal", "Fy2_cal", "Fz2p_cal", "Mx2_cal", "My2_cal",
+        "flag1_cal", "flag2_cal",
         "FZ1m_cal", "FZ2m_cal",
+        "flag_fz_cal", "flag_fx_cal", "flag_d_cal",
+        "reserved_1_cal", "reserved_2_cal", "reserved_3_cal", "reserved_4_cal", "reserved_5_cal",
     ]
 
 
@@ -165,7 +171,9 @@ def format_style0_data(data) -> str:
         f"Fx2={data.Fx2}, Fy2={data.Fy2}, Fz2+={data.Fz2_plus}, "
         f"Mx2={data.Mx2}, My2={data.My2}, "
         f"flag1={data.flag1}, flag2={data.flag2}, "
-        f"Fz1-={data.FZ1_minus}, Fz2-={data.FZ2_minus}"
+        f"Fz1-={data.FZ1_minus}, Fz2-={data.FZ2_minus}, "
+        f"flag_fz={data.flag_fz}, flag_fx={data.flag_fx}, flag_d={data.flag_d}, "
+        f"reserved=[{data.reserved_1}, {data.reserved_2}, {data.reserved_3}, {data.reserved_4}, {data.reserved_5}]"
     )
 
 

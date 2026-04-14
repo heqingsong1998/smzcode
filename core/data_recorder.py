@@ -24,8 +24,6 @@ class DataRecorder:
 
         # 数据队列（异步写入）
         self.data_queues = {
-            'hwt606_1': queue.Queue(maxsize=1000),
-            'hwt606_2': queue.Queue(maxsize=1000),
             'nianfujiao_style0': queue.Queue(maxsize=1000),
             'liuzhouli': queue.Queue(maxsize=1000),
         }
@@ -38,8 +36,6 @@ class DataRecorder:
         self.lock = Lock()
 
         self.data_counts = {
-            'hwt606_1': 0,
-            'hwt606_2': 0,
             'nianfujiao': 0,
             'liuzhouli': 0,
         }
@@ -75,8 +71,6 @@ class DataRecorder:
         os.makedirs(self.session_dir, exist_ok=True)
 
         try:
-            self._create_hwt606_csv('hwt606_1')
-            self._create_hwt606_csv('hwt606_2')
             self._create_nianfujiao_csv()
             self._create_liuzhouli_csv()
 
@@ -326,12 +320,16 @@ class DataRecorder:
             'Fx2_raw', 'Fy2_raw', 'Fz2+_raw', 'Mx2_raw', 'My2_raw',
             'flag1_raw', 'flag2_raw',
             'FZ1-_raw', 'FZ2-_raw',
+            'flag_fz_raw', 'flag_fx_raw', 'flag_d_raw',
+            'reserved_1_raw', 'reserved_2_raw', 'reserved_3_raw', 'reserved_4_raw', 'reserved_5_raw',
             # 标定数据
             'Fx1_cal', 'Fy1_cal', 'Fz1+_cal', 'Mx1_cal', 'My1_cal',
             'JJJ1_1_cal', 'JJJ1_2_cal',
             'Fx2_cal', 'Fy2_cal', 'Fz2+_cal', 'Mx2_cal', 'My2_cal',
             'flag1_cal', 'flag2_cal',
             'FZ1-_cal', 'FZ2-_cal',
+            'flag_fz_cal', 'flag_fx_cal', 'flag_d_cal',
+            'reserved_1_cal', 'reserved_2_cal', 'reserved_3_cal', 'reserved_4_cal', 'reserved_5_cal',
              # ★ 新增：两个 Fz 合力（标定）
             'Fz1_total_cal',    # = Fz1+_cal + FZ1-_cal
             'Fz2_total_cal',    # = Fz2+_cal + FZ2-_cal

@@ -686,8 +686,8 @@ class SensorManager(QObject):
     def _convert_style0_data(self, data) -> dict:
         """
         转换粘附脚 Style0Data 为字典格式：
-        - raw: 原始 16 个字段
-        - calibrated: 如启用标定，则为标定后的 16 个值，否则全 0
+        - raw: 原始 24 个字段
+        - calibrated: 如启用标定，则为标定后的 24 个值，否则全 0
         """
         from drivers.nianfujiao_song.utils import (
             cal_Fx1, cal_Fy1, cal_Fz1_plus, cal_Mx1, cal_My1,
@@ -701,6 +701,8 @@ class SensorManager(QObject):
             data.Fx2, data.Fy2, data.Fz2_plus, data.Mx2, data.My2,
             data.flag1, data.flag2,
             data.FZ1_minus, data.FZ2_minus,
+            data.flag_fz, data.flag_fx, data.flag_d,
+            data.reserved_1, data.reserved_2, data.reserved_3, data.reserved_4, data.reserved_5,
         ]
 
         device = self.nianfujiao
@@ -724,9 +726,17 @@ class SensorManager(QObject):
                 data.flag2,  # flag2 无标定函数
                 cal_FZ1_minus(data.FZ1_minus),
                 cal_FZ2_minus(data.FZ2_minus),
+                data.flag_fz,  # 新增 flag 字段无标定函数
+                data.flag_fx,
+                data.flag_d,
+                data.reserved_1,  # 保留字段无标定函数
+                data.reserved_2,
+                data.reserved_3,
+                data.reserved_4,
+                data.reserved_5,
             ]
         else:
-            calibrated_values = [0.0] * 16
+            calibrated_values = [0.0] * 24
         # ★ 计算两个 Fz 合力（标定值）
         # 索引含义见上面的说明
         fz1_total_cal = calibrated_values[2] + calibrated_values[14]

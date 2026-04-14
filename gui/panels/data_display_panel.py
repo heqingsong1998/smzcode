@@ -258,9 +258,10 @@ class NianFuJiaoDisplayWidget(QWidget):
         headers = [
             'Fx1', 'Fy1', 'Fz1+', 'Mx1', 'My1', 'JJJ1_1', 'JJJ1_2',
             'Fx2', 'Fy2', 'Fz2+', 'Mx2', 'My2', 'flag1', 'flag2',
-            'FZ1-', 'FZ2-'
+            'FZ1-', 'FZ2-', 'flag_fz', 'flag_fx', 'flag_d',
+            'resv1', 'resv2', 'resv3', 'resv4', 'resv5'
         ]
-        self.style0_table = self._create_table(16, headers)
+        self.style0_table = self._create_table(24, headers)
         layout.addWidget(self.style0_table)
         self.setLayout(layout)
 
@@ -312,17 +313,6 @@ class DataDisplayPanel(QWidget):
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
         
-        # HWT606传感器区
-        hwt606_layout = QHBoxLayout()
-        
-        self.hwt606_1_widget = HWT606DisplayWidget("HWT606 传感1")
-        hwt606_layout.addWidget(self.hwt606_1_widget)
-        
-        self.hwt606_2_widget = HWT606DisplayWidget("HWT606 传感2")
-        hwt606_layout.addWidget(self.hwt606_2_widget)
-        
-        layout.addLayout(hwt606_layout)
-        
         # 六轴力传感器
         self.liuzhouli_widget = LiuZhouLiDisplayWidget()
         layout.addWidget(self.liuzhouli_widget)
@@ -334,12 +324,12 @@ class DataDisplayPanel(QWidget):
         self.setLayout(layout)
     
     def update_hwt606_1_data(self, data: dict):
-        """更新HWT606-1数据"""
-        self.hwt606_1_widget.update_data(data)
+        """兼容旧调用：当前界面不显示 HWT606-1 数据"""
+        return
     
     def update_hwt606_2_data(self, data: dict):
-        """更新HWT606-2数据"""
-        self.hwt606_2_widget.update_data(data)
+        """兼容旧调用：当前界面不显示 HWT606-2 数据"""
+        return
     
     def update_liuzhouli_data(self, data: dict):
         """更新六轴力数据"""

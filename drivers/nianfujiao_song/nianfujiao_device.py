@@ -3,7 +3,8 @@
 
 协议更新：
 - 仅接收样式0数据帧 (Style0)
-- 样式0 中原 JJJ2_1 / JJJ2_2 字段改为 flag1 / flag2
+- 样式0帧头更新为 5A 30 00 80 00 01 23
+- 样式0 payload 从 16 个 int16 扩展为 24 个 int16
 """
 import struct
 import time
@@ -172,9 +173,9 @@ class NianFuJiaoDevice(NianFuJiaoBase):
             return False
 
         payload = buf[len(STYLE0_HEADER) : len(STYLE0_HEADER) + STYLE0_PAYLOAD_LEN]
-        fields = struct.unpack("<16h", payload)  # 16个int16小端
+        fields = struct.unpack("<24h", payload)  # 24个int16小端
 
-        # 映射到数据结构（注意 flag1/flag2）
+        # 映射到数据结构（24字段）
         data = Style0Data(
             Fx1=fields[0],
             Fy1=fields[1],
@@ -192,6 +193,14 @@ class NianFuJiaoDevice(NianFuJiaoBase):
             flag2=fields[13],
             FZ1_minus=fields[14],
             FZ2_minus=fields[15],
+            flag_fz=fields[16],
+            flag_fx=fields[17],
+            flag_d=fields[18],
+            reserved_1=fields[19],
+            reserved_2=fields[20],
+            reserved_3=fields[21],
+            reserved_4=fields[22],
+            reserved_5=fields[23],
         )
 
         # 计算标定值
@@ -213,9 +222,17 @@ class NianFuJiaoDevice(NianFuJiaoBase):
                 data.flag2,
                 cal_FZ1_minus(data.FZ1_minus),
                 cal_FZ2_minus(data.FZ2_minus),
+                data.flag_fz,
+                data.flag_fx,
+                data.flag_d,
+                data.reserved_1,
+                data.reserved_2,
+                data.reserved_3,
+                data.reserved_4,
+                data.reserved_5,
             ]
         else:
-            cal_values = [0.0] * 16
+            cal_values = [0.0] * 24
 
         # 写入 CSV（原始值 + 标定值）
         if self.csv0:

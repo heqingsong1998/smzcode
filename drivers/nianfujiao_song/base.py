@@ -2,7 +2,9 @@
 粘附脚传感器基础类
 
 当前协议仅保留样式0数据帧 (Style0)。
-其中原先的 JJJ2_1 / JJJ2_2 字段被改为 flag1 / flag2。
+新版样式0为 24 个 int16 字段：
+- 前 16 项保持原语义（含 flag1 / flag2）
+- 新增 flag_fz / flag_fx / flag_d / reserved_1..reserved_5
 """
 import serial
 from abc import ABC, abstractmethod
@@ -12,7 +14,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Style0Data:
-    """样式0数据结构 (16个字段)"""
+    """样式0数据结构 (24个字段)"""
     Fx1: int
     Fy1: int
     Fz1_plus: int
@@ -29,6 +31,14 @@ class Style0Data:
     flag2: int      # 原 JJJ2_2
     FZ1_minus: int
     FZ2_minus: int
+    flag_fz: int
+    flag_fx: int
+    flag_d: int
+    reserved_1: int
+    reserved_2: int
+    reserved_3: int
+    reserved_4: int
+    reserved_5: int
 
 
 class NianFuJiaoBase(ABC):
