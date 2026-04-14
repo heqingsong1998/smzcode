@@ -258,9 +258,10 @@ class NianFuJiaoDisplayWidget(QWidget):
         headers = [
             'Fx1', 'Fy1', 'Fz1+', 'Mx1', 'My1', 'JJJ1_1', 'JJJ1_2',
             'Fx2', 'Fy2', 'Fz2+', 'Mx2', 'My2', 'flag1', 'flag2',
-            'FZ1-', 'FZ2-'
+            'FZ1-', 'FZ2-', 'flag_fz', 'flag_fx', 'flag_d',
+            'resv1', 'resv2', 'resv3', 'resv4', 'resv5'
         ]
-        self.style0_table = self._create_table(16, headers)
+        self.style0_table = self._create_table(24, headers)
         layout.addWidget(self.style0_table)
         self.setLayout(layout)
 
