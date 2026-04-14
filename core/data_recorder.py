@@ -24,8 +24,6 @@ class DataRecorder:
 
         # 数据队列（异步写入）
         self.data_queues = {
-            'hwt606_1': queue.Queue(maxsize=1000),
-            'hwt606_2': queue.Queue(maxsize=1000),
             'nianfujiao_style0': queue.Queue(maxsize=1000),
             'liuzhouli': queue.Queue(maxsize=1000),
         }
@@ -38,8 +36,6 @@ class DataRecorder:
         self.lock = Lock()
 
         self.data_counts = {
-            'hwt606_1': 0,
-            'hwt606_2': 0,
             'nianfujiao': 0,
             'liuzhouli': 0,
         }
@@ -75,8 +71,6 @@ class DataRecorder:
         os.makedirs(self.session_dir, exist_ok=True)
 
         try:
-            self._create_hwt606_csv('hwt606_1')
-            self._create_hwt606_csv('hwt606_2')
             self._create_nianfujiao_csv()
             self._create_liuzhouli_csv()
 

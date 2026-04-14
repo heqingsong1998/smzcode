@@ -151,32 +151,6 @@ class ConnectionPanel(QWidget):
         sensors_layout = QGridLayout()
         sensors_layout.setSpacing(10)
         
-        # HWT606-1
-        hwt606_1_config = self.config['sensor']['hwt606_1']
-        hwt606_1_widget = SensorConnectionWidget(
-            'hwt606_1',
-            hwt606_1_config['name'],
-            hwt606_1_config['port'],
-            hwt606_1_config['baud']
-        )
-        hwt606_1_widget.connect_clicked.connect(self.connect_sensor.emit)
-        hwt606_1_widget.disconnect_clicked.connect(self.disconnect_sensor.emit)
-        self.sensor_widgets['hwt606_1'] = hwt606_1_widget
-        sensors_layout.addWidget(hwt606_1_widget, 0, 0)
-        
-        # HWT606-2
-        hwt606_2_config = self.config['sensor']['hwt606_2']
-        hwt606_2_widget = SensorConnectionWidget(
-            'hwt606_2',
-            hwt606_2_config['name'],
-            hwt606_2_config['port'],
-            hwt606_2_config['baud']
-        )
-        hwt606_2_widget.connect_clicked.connect(self.connect_sensor.emit)
-        hwt606_2_widget.disconnect_clicked.connect(self.disconnect_sensor.emit)
-        self.sensor_widgets['hwt606_2'] = hwt606_2_widget
-        sensors_layout.addWidget(hwt606_2_widget, 0, 1)
-        
         # 粘附脚传感器
         nianfujiao_config = self.config['sensor']['nianfujiao']
         nianfujiao_widget = SensorConnectionWidget(
@@ -188,7 +162,7 @@ class ConnectionPanel(QWidget):
         nianfujiao_widget.connect_clicked.connect(self.connect_sensor.emit)
         nianfujiao_widget.disconnect_clicked.connect(self.disconnect_sensor.emit)
         self.sensor_widgets['nianfujiao'] = nianfujiao_widget
-        sensors_layout.addWidget(nianfujiao_widget, 1, 0)
+        sensors_layout.addWidget(nianfujiao_widget, 0, 0)
         
         # 六轴力传感器
         liuzhouli_config = self.config['sensor']['m8128b1']
@@ -201,7 +175,7 @@ class ConnectionPanel(QWidget):
         liuzhouli_widget.connect_clicked.connect(self.connect_sensor.emit)
         liuzhouli_widget.disconnect_clicked.connect(self.disconnect_sensor.emit)
         self.sensor_widgets['liuzhouli'] = liuzhouli_widget
-        sensors_layout.addWidget(liuzhouli_widget, 1, 1)
+        sensors_layout.addWidget(liuzhouli_widget, 0, 1)
         
         layout.addLayout(sensors_layout)
         
