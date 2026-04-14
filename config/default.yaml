@@ -1,0 +1,68 @@
+
+# 传感器配置
+sensor:
+  # M8128B1 六轴力传感器配置(标准六轴)
+  m8128b1:
+    type: m8128b1
+    port: COM11
+    baudrate: 115200
+    timeout: 1.0
+    check_mode: SUM        # SUM or CRC32
+    sample_freq: 200
+    # dnpch_set: 1          # optional; groups per frame
+    frame_timeout: 0.5
+    max_queue_len: 2000
+    zero_settle_s: 0.2
+
+  # 粘附脚传感器
+  nianfujiao:
+    type: "nianfujiao"
+    port: "COM5"
+    baud: 115200
+    enable_csv: true
+    print_data: true
+    enable_calibration: true
+  
+  # HWT606姿态传感器 - 传感器1
+  hwt606_1:
+    type: "hwt606"
+    name: "HWT606传感器1"
+    port: "COM12"
+    baud: 921600
+    write_config1:
+      rate: 11                # 输出频率设置为 100Hz
+      direction_h_v: 0       # 水平放置
+      direction_axis: 0      # 正常方向
+  
+  # HWT606姿态传感器 - 传感器2
+  hwt606_2:
+    type: "hwt606"
+    name: "HWT606传感器2"
+    port: "COM13"
+    baud: 921600
+    write_config2:
+      rate: 11                # 输出频率设置为 100Hz
+      direction_h_v: 0       # 水平放置
+      direction_axis: 0      # 正常方向
+  
+# 调试参数
+debug:
+  # HWT606调试参数
+  hwt606:
+    init_wait: 3          # 初始化等待时间(秒)
+    step_wait: 5          # 步骤间等待时间(秒)
+  
+  # 粘附脚调试参数
+  nianfujiao:
+    command_interval: 5   # 指令间隔时间(秒)
+  
+  # 六轴力调试参数
+  liuzhouli:
+    display_rate: 10      # 数据显示频率(Hz)
+
+logging:
+  out_dir: data
+  flush_every_n_rows: 50
+  flush_every_sec: 0.5
+
+    
