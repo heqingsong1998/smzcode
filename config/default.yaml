@@ -1,18 +1,28 @@
-
 # 传感器配置
 sensor:
   # M8128B1 六轴力传感器配置(标准六轴)
   m8128b1:
     type: m8128b1
+
+    # 通信方式：serial 或 ethernet
+    transport: ethernet
+
+    # ---------- 串口参数（transport=serial 时使用） ----------
     port: COM11
     baudrate: 115200
+
+    # ---------- 以太网参数（transport=ethernet 时使用） ----------
+    ip: 192.168.0.108
+    tcp_port: 4008
+
+    # ---------- 通用参数 ----------
     timeout: 1.0
-    check_mode: SUM        # SUM or CRC32
-    sample_freq: 200
-    # dnpch_set: 1          # optional; groups per frame
+    check_mode: SUM          # SUM or CRC32
+    sample_freq: 1000        # 建议先 1000Hz 跑通，再视情况提高到 2000Hz
+    # dnpch_set: 1           # optional; groups per frame（不建议默认启用）
     frame_timeout: 0.5
-    max_queue_len: 2000
-    zero_settle_s: 0.2
+    max_queue_len: 4000
+    zero_settle_s: 2.0       # 手册要求调零后至少等待 2 秒
 
   # 粘附脚传感器
   nianfujiao:
@@ -31,8 +41,8 @@ sensor:
     baud: 921600
     write_config1:
       rate: 11                # 输出频率设置为 100Hz
-      direction_h_v: 0       # 水平放置
-      direction_axis: 0      # 正常方向
+      direction_h_v: 0        # 水平放置
+      direction_axis: 0       # 正常方向
   
   # HWT606姿态传感器 - 传感器2
   hwt606_2:
@@ -42,27 +52,25 @@ sensor:
     baud: 921600
     write_config2:
       rate: 11                # 输出频率设置为 100Hz
-      direction_h_v: 0       # 水平放置
-      direction_axis: 0      # 正常方向
+      direction_h_v: 0        # 水平放置
+      direction_axis: 0       # 正常方向
   
 # 调试参数
 debug:
   # HWT606调试参数
   hwt606:
-    init_wait: 3          # 初始化等待时间(秒)
-    step_wait: 5          # 步骤间等待时间(秒)
+    init_wait: 3
+    step_wait: 5
   
   # 粘附脚调试参数
   nianfujiao:
-    command_interval: 5   # 指令间隔时间(秒)
+    command_interval: 5
   
   # 六轴力调试参数
   liuzhouli:
-    display_rate: 10      # 数据显示频率(Hz)
+    display_rate: 10
 
 logging:
   out_dir: data
   flush_every_n_rows: 50
   flush_every_sec: 0.5
-
-    
