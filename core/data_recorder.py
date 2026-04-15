@@ -24,8 +24,8 @@ class DataRecorder:
 
         # 数据队列（异步写入）
         self.data_queues = {
-            'nianfujiao_style0': queue.Queue(maxsize=1000),
-            'liuzhouli': queue.Queue(maxsize=1000),
+            'nianfujiao_style0': queue.Queue(maxsize=5000),
+            'liuzhouli': queue.Queue(maxsize=10000),
         }
 
         # 写入线程
