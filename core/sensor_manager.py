@@ -583,7 +583,15 @@ class SensorManager(QObject):
             if not self.display_timer.isActive():
                 self.display_timer.start()
 
-            print(f"[INFO] 六轴力传感器已连接: {config['port']}，由统一采集线程接管采集")
+            transport = str(config.get('transport', 'serial')).strip().lower()
+            if transport in ('ethernet', 'tcp', 'eth'):
+                target = f"{config.get('ip', 'UNKNOWN')}:{config.get('tcp_port', 4008)}"
+                mode = "以太网"
+            else:
+                target = config.get('port', 'UNKNOWN')
+                mode = "串口"
+
+            print(f"[INFO] 六轴力传感器已连接: {mode} {target}，由统一采集线程接管采集")
             return True
 
         except Exception as e:

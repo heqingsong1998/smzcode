@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
         if success:
             QMessageBox.information(self, "成功", f"{sensor_id} 连接成功！")
         else:
-            QMessageBox.warning(self, "失败", f"{sensor_id} 连接失败，请检查串口和配置！")
+            QMessageBox.warning(self, "失败", f"{sensor_id} 连接失败，请检查连接参数和配置！")
     
     def _on_disconnect_sensor(self, sensor_id: str):
         """断开传感器"""
