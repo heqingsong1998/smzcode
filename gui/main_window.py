@@ -5,11 +5,12 @@ import sys
 import os
 import subprocess
 import platform
+from threading import Thread
 from typing import Optional
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QSplitter, QMessageBox, QApplication)
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 
 # 添加项目根目录到路径
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -26,6 +27,9 @@ from gui.widgets.log_widget import LogWidget
 
 class MainWindow(QMainWindow):
     """主窗口"""
+
+    # 由后台线程发回主线程，避免 UI 被阻塞
+    liuzhouli_zero_finished = pyqtSignal(bool, str)
     
     def __init__(self, config_path: str = "config/default.yaml"):
         super().__init__()
@@ -120,6 +124,8 @@ class MainWindow(QMainWindow):
     
     def _connect_signals(self):
         """连接信号和槽"""
+        self.liuzhouli_zero_finished.connect(self._on_liuzhouli_zero_finished)
+
         # ========== 连接管理信号 ==========
         self.connection_panel.connect_sensor.connect(self._on_connect_sensor)
         self.connection_panel.disconnect_sensor.connect(self._on_disconnect_sensor)
@@ -151,7 +157,7 @@ class MainWindow(QMainWindow):
         
         # 六轴力
         self.control_panel.liuzhouli_zero.connect(
-            self.sensor_manager.liuzhouli_zero
+            self._on_liuzhouli_zero_requested
         )
         
         # ========== 数据更新信号 ==========
@@ -239,6 +245,31 @@ class MainWindow(QMainWindow):
         """传感器错误"""
         self.connection_panel.set_sensor_error(sensor_id)
         QMessageBox.critical(self, f"{sensor_id} 错误", error_msg)
+
+    def _on_liuzhouli_zero_requested(self):
+        """异步执行六轴力清零，避免阻塞 GUI 主线程。"""
+        if not self.sensor_manager.connection_status.get('liuzhouli', False):
+            QMessageBox.warning(self, "提示", "六轴力传感器未连接")
+            return
+
+        self.control_panel.liuzhouli_zero_btn.setEnabled(False)
+
+        def _worker():
+            success = self.sensor_manager.liuzhouli_zero()
+            message = "六轴力传感器清零完成" if success else "六轴力传感器清零失败，请查看日志"
+            self.liuzhouli_zero_finished.emit(success, message)
+
+        Thread(target=_worker, daemon=True).start()
+
+    def _on_liuzhouli_zero_finished(self, success: bool, message: str):
+        """六轴力清零结果回调（主线程）。"""
+        if self.sensor_manager.connection_status.get('liuzhouli', False):
+            self.control_panel.liuzhouli_zero_btn.setEnabled(True)
+
+        if success:
+            QMessageBox.information(self, "成功", message)
+        else:
+            QMessageBox.warning(self, "失败", message)
     
     # ==================== 数据更新槽函数 ====================
     
