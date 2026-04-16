@@ -23,6 +23,10 @@ sensor:
     frame_timeout: 0.5
     max_queue_len: 4000
     zero_settle_s: 2.0       # 手册要求调零后至少等待 2 秒
+    # 粘附脚写入模式：
+    # false = 与六轴力一一对应写入（允许重复值，便于逐样本对齐）
+    # true  = 仅在粘附脚数据变化时写入（减少重复，降低队列压力）
+    nianfujiao_on_change_only: false
 
   # 粘附脚传感器
   nianfujiao:

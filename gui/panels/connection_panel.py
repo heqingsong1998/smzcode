@@ -18,23 +18,33 @@ class SensorConnectionWidget(QWidget):
     connect_clicked = pyqtSignal(str)      # 连接按钮点击 (sensor_id)
     disconnect_clicked = pyqtSignal(str)   # 断开按钮点击 (sensor_id)
     
-    def __init__(self, sensor_id: str, name: str, port: str, baud: int, parent=None):
+    def __init__(
+        self,
+        sensor_id: str,
+        name: str,
+        endpoint: str,
+        baud: int | None,
+        protocol: str = "串口",
+        parent=None,
+    ):
         """
         初始化传感器连接控件
         
         Args:
             sensor_id: 传感器ID
             name: 传感器名称
-            port: 串口号
-            baud: 波特率
+            endpoint: 连接目标（串口号 或 IP:端口）
+            baud: 波特率（非串口可为 None）
+            protocol: 通信方式（例如 串口/以太网）
             parent: 父组件
         """
         super().__init__(parent)
         
         self.sensor_id = sensor_id
         self.name = name
-        self.port = port
+        self.endpoint = endpoint
         self.baud = baud
+        self.protocol = protocol
         self.is_connected = False
         
         self._setup_ui()
@@ -50,14 +60,19 @@ class SensorConnectionWidget(QWidget):
         name_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(name_label)
         
-        # 串口信息
-        port_label = QLabel(f"端口: {self.port}")
-        port_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(port_label)
-        
-        baud_label = QLabel(f"波特率: {self.baud}")
-        baud_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(baud_label)
+        # 连接信息
+        protocol_label = QLabel(f"通信: {self.protocol}")
+        protocol_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(protocol_label)
+
+        endpoint_label = QLabel(f"目标: {self.endpoint}")
+        endpoint_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(endpoint_label)
+
+        if self.baud is not None:
+            baud_label = QLabel(f"波特率: {self.baud}")
+            baud_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(baud_label)
         
         # 连接按钮
         self.connect_btn = QPushButton("连接")
@@ -156,8 +171,9 @@ class ConnectionPanel(QWidget):
         nianfujiao_widget = SensorConnectionWidget(
             'nianfujiao',
             '粘附脚传感器',
-            nianfujiao_config['port'],
-            nianfujiao_config['baud']
+            endpoint=nianfujiao_config['port'],
+            baud=nianfujiao_config['baud'],
+            protocol='串口',
         )
         nianfujiao_widget.connect_clicked.connect(self.connect_sensor.emit)
         nianfujiao_widget.disconnect_clicked.connect(self.disconnect_sensor.emit)
@@ -166,11 +182,22 @@ class ConnectionPanel(QWidget):
         
         # 六轴力传感器
         liuzhouli_config = self.config['sensor']['m8128b1']
+        transport = str(liuzhouli_config.get('transport', 'serial')).strip().lower()
+        if transport in ('ethernet', 'tcp', 'eth'):
+            protocol = '以太网'
+            endpoint = f"{liuzhouli_config.get('ip', 'UNKNOWN')}:{liuzhouli_config.get('tcp_port', 4008)}"
+            baud = None
+        else:
+            protocol = '串口'
+            endpoint = liuzhouli_config.get('port', 'UNKNOWN')
+            baud = liuzhouli_config.get('baudrate', 115200)
+
         liuzhouli_widget = SensorConnectionWidget(
             'liuzhouli',
             '六轴力传感器',
-            liuzhouli_config['port'],
-            liuzhouli_config['baudrate']
+            endpoint=endpoint,
+            baud=baud,
+            protocol=protocol,
         )
         liuzhouli_widget.connect_clicked.connect(self.connect_sensor.emit)
         liuzhouli_widget.disconnect_clicked.connect(self.disconnect_sensor.emit)
