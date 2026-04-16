@@ -102,6 +102,14 @@ class SensorManager(QObject):
         self.record_callback_hwt606_2 = None
         self.record_callback_nianfujiao = None
         self.record_callback_liuzhouli = None
+        # 粘附脚去重：记录每个 style 最近一次已写入的 sensor_ts_ms
+        self._nianfujiao_last_written_sensor_ts_ms = {}
+        liuzhouli_cfg = self.config.get('sensor', {}).get('m8128b1', {})
+        # False: 与六轴力一一对应写入（允许粘附脚重复值）；
+        # True: 仅粘附脚数据变化时写入（避免重复，降低队列压力）
+        self._nianfujiao_on_change_only = bool(
+            liuzhouli_cfg.get('nianfujiao_on_change_only', False)
+        )
 
         # 调试计数
         self._debug_print_counts = {
@@ -332,6 +340,15 @@ class SensorManager(QObject):
                                 if last_data is None:
                                     continue
 
+                                if self._nianfujiao_on_change_only:
+                                    sensor_ts_ms = last_data.get('sensor_ts_ms')
+                                    if sensor_ts_ms is not None:
+                                        last_written = self._nianfujiao_last_written_sensor_ts_ms.get(style)
+                                        # 若缓存未更新（仍是同一条回调数据），则跳过，避免按六轴频率重复写盘
+                                        if last_written == sensor_ts_ms:
+                                            continue
+                                        self._nianfujiao_last_written_sensor_ts_ms[style] = sensor_ts_ms
+
                                 data_nf = dict(last_data)
                                 data_nf['timestamp_ms'] = now_ms
 
@@ -509,6 +526,7 @@ class SensorManager(QObject):
 
             self.connection_status['nianfujiao'] = True
             self.connection_status_changed.emit('nianfujiao', True)
+            self._nianfujiao_last_written_sensor_ts_ms.clear()
 
             self._ensure_unified_thread_started()
 
@@ -592,6 +610,7 @@ class SensorManager(QObject):
                 mode = "串口"
 
             print(f"[INFO] 六轴力传感器已连接: {mode} {target}，由统一采集线程接管采集")
+            print(f"[INFO] 粘附脚写入策略: {'仅变化写入' if self._nianfujiao_on_change_only else '与六轴力一一对应写入'}")
             return True
 
         except Exception as e:
@@ -632,6 +651,7 @@ class SensorManager(QObject):
             self.nianfujiao = None
             self.connection_status['nianfujiao'] = False
             self.connection_status_changed.emit('nianfujiao', False)
+            self._nianfujiao_last_written_sensor_ts_ms.clear()
             print("[INFO] 粘附脚传感器已断开")
 
         self._maybe_stop_unified_thread()

@@ -31,6 +31,9 @@ class DataRecorder:
         # 写入线程
         self.write_thread = None
         self.write_thread_running = False
+        self.write_batch_size = 200
+        self.write_idle_sleep_s = 0.001
+        self.flush_interval_s = 0.2
 
         # 线程锁（当前没用到，但保留以防之后扩展）
         self.lock = Lock()
@@ -127,31 +130,41 @@ class DataRecorder:
     def _write_loop(self):
         """异步写入循环（后台线程）"""
         print("[INFO] 数据写入线程已启动")
+        last_flush_time = time.perf_counter()
 
         while self.write_thread_running or any(not q.empty() for q in self.data_queues.values()):
             try:
+                wrote_any = False
                 # 从每个队列取数据并写入
                 for sensor_id, q in self.data_queues.items():
                     batch_count = 0
-                    while not q.empty() and batch_count < 10:  # 每次最多写10条
+                    while not q.empty() and batch_count < self.write_batch_size:
                         try:
                             row = q.get_nowait()
                             if sensor_id in self.csv_writers:
                                 self.csv_writers[sensor_id].writerow(row)
                                 batch_count += 1
+                                wrote_any = True
                         except queue.Empty:
                             break
 
-                # 定期刷新文件
-                for file in self.csv_files.values():
-                    file.flush()
+                # 定期刷新文件（降低 flush 频率，提升吞吐）
+                now = time.perf_counter()
+                if wrote_any and (now - last_flush_time) >= self.flush_interval_s:
+                    for file in self.csv_files.values():
+                        file.flush()
+                    last_flush_time = now
 
-                time.sleep(0.01)  # 10ms
+                if not wrote_any:
+                    time.sleep(self.write_idle_sleep_s)
 
             except Exception as e:
                 print(f"[ERROR] 写入循环异常: {e}")
                 time.sleep(0.1)
 
+        # 退出前确保落盘
+        for file in self.csv_files.values():
+            file.flush()
         print("[INFO] 数据写入线程已停止")
 
     def _flush_all_queues(self):
