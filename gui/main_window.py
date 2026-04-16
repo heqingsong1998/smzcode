@@ -30,6 +30,7 @@ class MainWindow(QMainWindow):
 
     # 由后台线程发回主线程，避免 UI 被阻塞
     liuzhouli_zero_finished = pyqtSignal(bool, str)
+    disconnect_all_finished = pyqtSignal(bool, str)
     
     def __init__(self, config_path: str = "config/default.yaml"):
         super().__init__()
@@ -125,6 +126,7 @@ class MainWindow(QMainWindow):
     def _connect_signals(self):
         """连接信号和槽"""
         self.liuzhouli_zero_finished.connect(self._on_liuzhouli_zero_finished)
+        self.disconnect_all_finished.connect(self._on_disconnect_all_finished)
 
         # ========== 连接管理信号 ==========
         self.connection_panel.connect_sensor.connect(self._on_connect_sensor)
@@ -227,9 +229,25 @@ class MainWindow(QMainWindow):
         # 如果正在采集，先停止
         if self.data_recorder.is_recording:
             self._on_stop_recording()
-        
-        self.sensor_manager.disconnect_all()
-        QMessageBox.information(self, "成功", "所有传感器已断开！")
+
+        self.connection_panel.set_all_busy(True)
+
+        def _worker():
+            try:
+                self.sensor_manager.disconnect_all()
+                self.disconnect_all_finished.emit(True, "所有传感器已断开！")
+            except Exception as e:
+                self.disconnect_all_finished.emit(False, f"断开失败: {e}")
+
+        Thread(target=_worker, daemon=True).start()
+
+    def _on_disconnect_all_finished(self, success: bool, message: str):
+        """断开所有传感器完成（主线程）"""
+        self.connection_panel.set_all_busy(False)
+        if success:
+            QMessageBox.information(self, "成功", message)
+        else:
+            QMessageBox.warning(self, "失败", message)
     
     def _on_sensor_status_changed(self, sensor_id: str, connected: bool):
         """传感器连接状态变化"""
