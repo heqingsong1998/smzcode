@@ -660,8 +660,6 @@ class SensorManager(QObject):
         """断开六轴力传感器"""
         if self.liuzhouli:
             try:
-                if hasattr(self.liuzhouli, 'stop_stream'):
-                    self.liuzhouli.stop_stream()
                 if hasattr(self.liuzhouli, 'disconnect'):
                     self.liuzhouli.disconnect()
                 elif hasattr(self.liuzhouli, 'close'):
