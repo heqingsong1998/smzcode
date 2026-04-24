@@ -1,10 +1,9 @@
 """
 粘附脚传感器设备主类
 
-协议更新：
-- 仅接收样式0数据帧 (Style0)
-- 样式0帧头更新为 5A 30 00 80 00 01 23
-- 样式0 payload 从 16 个 int16 扩展为 24 个 int16
+当前支持两种上行数据帧：
+- style0: 5A 30 00 80 00 01 23 + 24 * int16 + A5
+- style24: 5A 30 00 80 00 01 24 + 16 * int16 + A5
 """
 import struct
 import time
@@ -13,15 +12,18 @@ from typing import Optional
 
 import serial
 
-from .base import NianFuJiaoBase, Style0Data
+from .base import NianFuJiaoBase, Style0Data, Style24Data
 from .utils import (
     CsvWriter,
     get_style0_headers,
+    get_style24_headers,
     send_init_sequence,
     send_control_command,
     send_custom_command,
     format_style0_data,
+    format_style24_data,
     STYLE0_HEADER, STYLE0_TAIL, STYLE0_PAYLOAD_LEN, STYLE0_TOTAL_LEN,
+    STYLE24_HEADER, STYLE24_PAYLOAD_LEN, STYLE24_TOTAL_LEN,
     CONTROL_COMMANDS,
     # 标定函数
     cal_Fx1, cal_Fy1, cal_Fz1_plus, cal_Mx1, cal_My1,
@@ -31,7 +33,7 @@ from .utils import (
 
 
 class NianFuJiaoDevice(NianFuJiaoBase):
-    """粘附脚传感器设备类（仅样式0）"""
+    """粘附脚传感器设备类"""
 
     def __init__(
         self,
@@ -56,8 +58,9 @@ class NianFuJiaoDevice(NianFuJiaoBase):
         self.print_data = print_data
         self.enable_calibration = enable_calibration
 
-        # CSV 写入器（仅样式0）
+        # CSV 写入器
         self.csv0: Optional[CsvWriter] = None
+        self.csv24: Optional[CsvWriter] = None
 
         # 接收缓冲区
         self.rx_buf = bytearray()
@@ -117,13 +120,17 @@ class NianFuJiaoDevice(NianFuJiaoBase):
         if self.csv0:
             self.csv0.close()
             self.csv0 = None
+        if self.csv24:
+            self.csv24.close()
+            self.csv24 = None
 
         print("[INFO] 设备已关闭")
 
     def _init_csv_writers(self):
-        """初始化 CSV 写入器（仅样式0）"""
+        """初始化 CSV 写入器"""
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         self.csv0 = CsvWriter(f"style0_{timestamp}.csv", get_style0_headers())
+        self.csv24 = CsvWriter(f"style24_{timestamp}.csv", get_style24_headers())
 
     def _start_read_thread(self):
         """启动读取线程"""
@@ -137,7 +144,8 @@ class NianFuJiaoDevice(NianFuJiaoBase):
             print("[ERROR] 串口未打开，无法读取数据")
             return
 
-        min_chunk = STYLE0_TOTAL_LEN  # 按一帧长度做最小读取
+        # 允许较短的 style24 先被读取进缓冲区，style0 留待后续补齐。
+        min_chunk = min(STYLE0_TOTAL_LEN, STYLE24_TOTAL_LEN)
         while not self._stop_flag:
             try:
                 # 阻塞读取：若有缓存则多读，否则至少读一帧长度
@@ -152,14 +160,27 @@ class NianFuJiaoDevice(NianFuJiaoBase):
 
 
     def _consume_buffer(self):
-        """消费缓冲区数据，仅解析样式0"""
-        # 至少要有一帧的长度
-        while len(self.rx_buf) >= STYLE0_TOTAL_LEN:
-            # 尝试解析样式0
-            if self._try_parse_style0():
+        """消费缓冲区数据，解析 style0 / style24 两种帧"""
+        header_len = len(STYLE0_HEADER)
+
+        while len(self.rx_buf) >= header_len:
+            if self.rx_buf.startswith(STYLE0_HEADER):
+                if len(self.rx_buf) < STYLE0_TOTAL_LEN:
+                    return
+                if self._try_parse_style0():
+                    continue
+                del self.rx_buf[0]
                 continue
 
-            # 如果不匹配，丢弃1字节后重试，用于重新对齐
+            if self.rx_buf.startswith(STYLE24_HEADER):
+                if len(self.rx_buf) < STYLE24_TOTAL_LEN:
+                    return
+                if self._try_parse_style24():
+                    continue
+                del self.rx_buf[0]
+                continue
+
+            # 不是任何已知帧头，丢弃1字节继续找齐。
             del self.rx_buf[0]
 
     def _try_parse_style0(self) -> bool:
@@ -246,11 +267,55 @@ class NianFuJiaoDevice(NianFuJiaoBase):
                 # 需要的话，这里可以打印标定值
                 pass
 
-        # 通知回调（只有 style0 一种类型）
+        # 通知回调
         self._notify_callbacks("style0", data)
 
         # 丢弃已解析的数据
         del self.rx_buf[:STYLE0_TOTAL_LEN]
+        return True
+
+    def _try_parse_style24(self) -> bool:
+        """尝试解析样式24数据帧"""
+        buf = self.rx_buf
+        if not buf.startswith(STYLE24_HEADER):
+            return False
+        if len(buf) < STYLE24_TOTAL_LEN:
+            return False
+        if buf[STYLE24_TOTAL_LEN - 1] != STYLE0_TAIL:
+            return False
+
+        payload = buf[len(STYLE24_HEADER): len(STYLE24_HEADER) + STYLE24_PAYLOAD_LEN]
+        fields = struct.unpack("<16h", payload)
+
+        data = Style24Data(
+            F11=fields[0],
+            F12=fields[1],
+            F13=fields[2],
+            F14=fields[3],
+            F21=fields[4],
+            F22=fields[5],
+            F23=fields[6],
+            F24=fields[7],
+            reserved_1=fields[8],
+            reserved_2=fields[9],
+            reserved_3=fields[10],
+            reserved_4=fields[11],
+            reserved_5=fields[12],
+            reserved_6=fields[13],
+            reserved_7=fields[14],
+            reserved_8=fields[15],
+        )
+
+        if self.csv24:
+            self.csv24.write_row(list(fields))
+
+        if self.print_data:
+            # print(f"[STYLE24] {format_style24_data(data)}")
+            pass
+
+        self._notify_callbacks("style24", data)
+
+        del self.rx_buf[:STYLE24_TOTAL_LEN]
         return True
 
     # ========= 初始化与控制指令 =========

@@ -92,7 +92,7 @@ class SensorManager(QObject):
         self.latest_data = {
             'hwt606_1': None,
             'hwt606_2': None,
-            'nianfujiao': {0: None, 1: None, 2: None},
+            'nianfujiao': {0: None, 24: None},
             'liuzhouli': None,
         }
         # 六轴力最新原始样本（来自驱动 drain_samples）
@@ -547,17 +547,21 @@ class SensorManager(QObject):
     def _on_nianfujiao_callback(self, data_type: str, data):
         """
         粘附脚数据回调：
-        - 处理 style0 数据
+        - 处理 style0 / style24 数据
         - 只更新 latest_data，由统一采集线程在每帧写入 CSV
         """
         import traceback
         import time
         try:
-            if data_type != 'style0':
+            if data_type == 'style0':
+                style = 0
+                data_dict = self._convert_style0_data(data)
+            elif data_type == 'style24':
+                style = 24
+                data_dict = self._convert_style24_data(data)
+            else:
                 return
 
-            style = 0
-            data_dict = self._convert_style0_data(data)
             data_dict['sensor_ts_ms'] = int(time.time() * 1000)  # 原始到达时间
 
             self.latest_data['nianfujiao'][style] = data_dict
@@ -773,6 +777,27 @@ class SensorManager(QObject):
             'calibrated': calibrated_values,
             'fz1_total_cal': fz1_total_cal,  # Fz1+_cal + FZ1-_cal
             'fz2_total_cal': fz2_total_cal,  # Fz2+_cal + FZ2-_cal
+        }
+
+    def _convert_style24_data(self, data) -> dict:
+        """转换粘附脚 Style24Data 为字典格式"""
+        raw_values = [
+            data.F11, data.F12, data.F13, data.F14,
+            data.F21, data.F22, data.F23, data.F24,
+            data.reserved_1, data.reserved_2, data.reserved_3, data.reserved_4,
+            data.reserved_5, data.reserved_6, data.reserved_7, data.reserved_8,
+        ]
+
+        return {
+            'raw': raw_values,
+            'F11': data.F11,
+            'F12': data.F12,
+            'F13': data.F13,
+            'F14': data.F14,
+            'F21': data.F21,
+            'F22': data.F22,
+            'F23': data.F23,
+            'F24': data.F24,
         }
 
     def _get_hwt606_data(self, sensor) -> dict:

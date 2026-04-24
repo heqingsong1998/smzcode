@@ -25,6 +25,7 @@ class DataRecorder:
         # 数据队列（异步写入）
         self.data_queues = {
             'nianfujiao_style0': queue.Queue(maxsize=5000),
+            'nianfujiao_style24': queue.Queue(maxsize=5000),
             'liuzhouli': queue.Queue(maxsize=10000),
         }
 
@@ -75,6 +76,7 @@ class DataRecorder:
 
         try:
             self._create_nianfujiao_csv()
+            self._create_nianfujiao_style24_csv()
             self._create_liuzhouli_csv()
 
             self.is_recording = True
@@ -229,7 +231,7 @@ class DataRecorder:
 
     def write_nianfujiao_data(self, style: int, data: Dict[str, Any]):
         """
-        写入粘附脚传感器数据（仅 Style0，放入队列）
+        写入粘附脚传感器数据（Style0 / Style24，放入队列）
 
         约定：
         - data['timestamp_ms'] 为统一帧时间戳（由统一线程写入）
@@ -237,28 +239,28 @@ class DataRecorder:
         """
         if not self.is_recording:
             return
-        if style != 0:
-            # print(f"[WARN] 当前协议仅支持 style0，忽略 style{style} 的数据")
-            return
-
         try:
             ts_ms = data.get('timestamp_ms', '')
             timestamp_str = self._timestamp_ms_to_str(ts_ms)
-            raw_values = data.get('raw', [])
-            calibrated_values = data.get('calibrated', [])
 
-            # ★ 从 data 字典中取出两个和值（如果没有就默认 0.0）
-            fz1_total_cal = float(data.get('fz1_total_cal', 0.0))
-            fz2_total_cal = float(data.get('fz2_total_cal', 0.0))
+            if style == 0:
+                raw_values = data.get('raw', [])
+                calibrated_values = data.get('calibrated', [])
+                fz1_total_cal = float(data.get('fz1_total_cal', 0.0))
+                fz2_total_cal = float(data.get('fz2_total_cal', 0.0))
+                row = [timestamp_str, ts_ms] + raw_values + calibrated_values + [fz1_total_cal, fz2_total_cal]
+                queue_key = 'nianfujiao_style0'
+            elif style == 24:
+                raw_values = data.get('raw', [])
+                row = [timestamp_str, ts_ms] + raw_values
+                queue_key = 'nianfujiao_style24'
+            else:
+                return
 
-            # timestamp_str + timestamp_ms + raw + calibrated + two totals
-            row = [timestamp_str, ts_ms] + raw_values + calibrated_values + [fz1_total_cal, fz2_total_cal]
-
-            queue_key = 'nianfujiao_style0'
             self.data_queues[queue_key].put_nowait(row)
             self.data_counts['nianfujiao'] += 1
         except queue.Full:
-            print("[WARN] nianfujiao_style0 数据队列已满，丢弃数据")
+            print(f"[WARN] {queue_key} 数据队列已满，丢弃数据")
         except Exception as e:
             print(f"[ERROR] 写入粘附脚数据失败: {e}")
 
@@ -350,6 +352,24 @@ class DataRecorder:
 
         self.csv_files['nianfujiao_style0'] = file0
         self.csv_writers['nianfujiao_style0'] = writer0
+
+    def _create_nianfujiao_style24_csv(self):
+        """创建粘附脚传感器（Style24）CSV 文件"""
+        filepath = os.path.join(self.session_dir, "nianfujiao_style24.csv")
+        file = open(filepath, 'w', newline='', encoding='utf-8')
+        writer = csv.writer(file)
+
+        writer.writerow([
+            'timestamp',
+            'timestamp_ms',
+            'F11_raw', 'F12_raw', 'F13_raw', 'F14_raw',
+            'F21_raw', 'F22_raw', 'F23_raw', 'F24_raw',
+            'reserved_1_raw', 'reserved_2_raw', 'reserved_3_raw', 'reserved_4_raw',
+            'reserved_5_raw', 'reserved_6_raw', 'reserved_7_raw', 'reserved_8_raw',
+        ])
+
+        self.csv_files['nianfujiao_style24'] = file
+        self.csv_writers['nianfujiao_style24'] = writer
 
     def _create_liuzhouli_csv(self):
         """创建六轴力传感器 CSV 文件"""

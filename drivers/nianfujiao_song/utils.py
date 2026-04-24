@@ -1,11 +1,9 @@
 """
 粘附脚传感器工具函数
 
-协议更新（新版样式0）：
-- 帧头由 5A 20 00 80 00 01 23 更新为 5A 30 00 80 00 01 23
-- payload 由 16 个 int16 扩展为 24 个 int16
-- 在原 16 个字段后新增：
-  flag_fz / flag_fx / flag_d / reserved_1..reserved_5
+当前支持两种上行数据帧：
+- style0: 5A 30 00 80 00 01 23 + 24 * int16 + A5
+- style24: 5A 30 00 80 00 01 24 + 16 * int16 + A5
 """
 import csv
 import time
@@ -20,6 +18,12 @@ STYLE0_HEADER = bytes.fromhex("5A 30 00 80 00 01 23")
 STYLE0_TAIL = 0xA5
 STYLE0_PAYLOAD_LEN = 48
 STYLE0_TOTAL_LEN = len(STYLE0_HEADER) + STYLE0_PAYLOAD_LEN + 1
+
+# 样式24：
+# 5A 30 00 80 00 01 24 + 32字节 payload(16*int16 LE) + A5
+STYLE24_HEADER = bytes.fromhex("5A 30 00 80 00 01 24")
+STYLE24_PAYLOAD_LEN = 32
+STYLE24_TOTAL_LEN = len(STYLE24_HEADER) + STYLE24_PAYLOAD_LEN + 1
 
 
 # ========== 初始化数据帧 ==========
@@ -162,6 +166,16 @@ def get_style0_headers() -> List[str]:
     ]
 
 
+def get_style24_headers() -> List[str]:
+    """获取样式24的CSV表头（16字段原始值）"""
+    return [
+        "F11_raw", "F12_raw", "F13_raw", "F14_raw",
+        "F21_raw", "F22_raw", "F23_raw", "F24_raw",
+        "reserved_1_raw", "reserved_2_raw", "reserved_3_raw", "reserved_4_raw",
+        "reserved_5_raw", "reserved_6_raw", "reserved_7_raw", "reserved_8_raw",
+    ]
+
+
 def format_style0_data(data) -> str:
     """格式化样式0数据为字符串，便于调试打印"""
     return (
@@ -174,6 +188,16 @@ def format_style0_data(data) -> str:
         f"Fz1-={data.FZ1_minus}, Fz2-={data.FZ2_minus}, "
         f"flag_fz={data.flag_fz}, flag_fx={data.flag_fx}, flag_d={data.flag_d}, "
         f"reserved=[{data.reserved_1}, {data.reserved_2}, {data.reserved_3}, {data.reserved_4}, {data.reserved_5}]"
+    )
+
+
+def format_style24_data(data) -> str:
+    """格式化样式24数据为字符串，便于调试打印"""
+    return (
+        f"F11={data.F11}, F12={data.F12}, F13={data.F13}, F14={data.F14}, "
+        f"F21={data.F21}, F22={data.F22}, F23={data.F23}, F24={data.F24}, "
+        f"reserved=[{data.reserved_1}, {data.reserved_2}, {data.reserved_3}, {data.reserved_4}, "
+        f"{data.reserved_5}, {data.reserved_6}, {data.reserved_7}, {data.reserved_8}]"
     )
 
 

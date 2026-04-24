@@ -46,8 +46,8 @@ def main():
 
     def on_sensor_data(data_type, data):
         """处理解析后的传感器数据"""
-        if data_type == "style0":
-            data_queue.put(data)
+        if data_type in ("style0", "style24"):
+            data_queue.put((data_type, data))
 
     def drain_queue():
         """清空旧数据，确保下一帧为最新数据"""
@@ -60,11 +60,11 @@ def main():
     def print_latest_data(stage: str, timeout: float = 3.0):
         """等待并打印最新一帧解析数据"""
         try:
-            data = data_queue.get(timeout=timeout)
+            data_type, data = data_queue.get(timeout=timeout)
         except Empty:
             print(f"[WARN] {stage}后在{timeout}秒内未收到新的传感器数据")
             return
-        print(f"[DATA] {stage}: {asdict(data)}")
+        print(f"[DATA] {stage} [{data_type}]: {asdict(data)}")
 
     try:
         # 加载配置
