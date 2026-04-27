@@ -117,8 +117,9 @@ class RecordingPanel(QWidget):
         # 数据条数
         count_row = QHBoxLayout()
         count_row.addWidget(QLabel("数据条数:"))
-        self.count_label = QLabel("粘附脚: 0 | 六轴力: 0")
+        self.count_label = QLabel("粘附脚 style0: 0 | style24: 0 | 六轴力: 0")
         self.count_label.setFont(font)
+        self.count_label.setWordWrap(True)
         count_row.addWidget(self.count_label)
         count_row.addStretch()
         status_layout.addLayout(count_row)
@@ -208,7 +209,10 @@ class RecordingPanel(QWidget):
         Args:
             counts: 数据条数字典 {'hwt606_1': 100, 'hwt606_2': 98, ...}
         """
-        text = (f"粘附脚: {counts.get('nianfujiao', 0)} | "
+        style0_count = counts.get('nianfujiao_style0', counts.get('nianfujiao', 0))
+        style24_count = counts.get('nianfujiao_style24', 0)
+        text = (f"粘附脚 style0: {style0_count} | "
+                f"style24: {style24_count} | "
                 f"六轴力: {counts.get('liuzhouli', 0)}")
         self.count_label.setText(text)
     
@@ -240,7 +244,7 @@ class RecordingPanel(QWidget):
         self.status_label.setText("⏸️ 已停止")
         self.status_label.setStyleSheet("color: #666;")
         self.duration_label.setText("00:00:00")
-        self.count_label.setText("粘附脚: 0 | 六轴力: 0")
+        self.count_label.setText("粘附脚 style0: 0 | style24: 0 | 六轴力: 0")
         self.path_label.setText("未开始采集")
         self.size_label.setText("0 MB")
         

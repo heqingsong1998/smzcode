@@ -40,7 +40,8 @@ class DataRecorder:
         self.lock = Lock()
 
         self.data_counts = {
-            'nianfujiao': 0,
+            'nianfujiao_style0': 0,
+            'nianfujiao_style24': 0,
             'liuzhouli': 0,
         }
 
@@ -75,6 +76,12 @@ class DataRecorder:
         os.makedirs(self.session_dir, exist_ok=True)
 
         try:
+            self.data_counts = {
+                'nianfujiao_style0': 0,
+                'nianfujiao_style24': 0,
+                'liuzhouli': 0,
+            }
+
             self._create_nianfujiao_csv()
             self._create_nianfujiao_style24_csv()
             self._create_liuzhouli_csv()
@@ -223,7 +230,7 @@ class DataRecorder:
                 data.get('vel_z', 0.0),
             ]
             self.data_queues[sensor_id].put_nowait(row)
-            self.data_counts[sensor_id] += 1
+            self.data_counts[sensor_id] = self.data_counts.get(sensor_id, 0) + 1
         except queue.Full:
             print(f"[WARN] {sensor_id} 数据队列已满，丢弃数据")
         except Exception as e:
@@ -250,15 +257,17 @@ class DataRecorder:
                 fz2_total_cal = float(data.get('fz2_total_cal', 0.0))
                 row = [timestamp_str, ts_ms] + raw_values + calibrated_values + [fz1_total_cal, fz2_total_cal]
                 queue_key = 'nianfujiao_style0'
+                count_key = 'nianfujiao_style0'
             elif style == 24:
                 raw_values = data.get('raw', [])
                 row = [timestamp_str, ts_ms] + raw_values
                 queue_key = 'nianfujiao_style24'
+                count_key = 'nianfujiao_style24'
             else:
                 return
 
             self.data_queues[queue_key].put_nowait(row)
-            self.data_counts['nianfujiao'] += 1
+            self.data_counts[count_key] = self.data_counts.get(count_key, 0) + 1
         except queue.Full:
             print(f"[WARN] {queue_key} 数据队列已满，丢弃数据")
         except Exception as e:
